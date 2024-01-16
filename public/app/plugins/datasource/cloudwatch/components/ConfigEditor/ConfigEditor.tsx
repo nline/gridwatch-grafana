@@ -11,12 +11,11 @@ import {
   DataSourceTestFailed,
 } from '@grafana/data';
 import { ConfigSection } from '@grafana/experimental';
-import { getAppEvents, usePluginInteractionReporter } from '@grafana/runtime';
+import { getAppEvents, usePluginInteractionReporter, getDataSourceSrv } from '@grafana/runtime';
 import { Input, InlineField, FieldProps, SecureSocksProxySettings, Field, Divider } from '@grafana/ui';
 import { notifyApp } from 'app/core/actions';
 import { config } from 'app/core/config';
 import { createWarningNotification } from 'app/core/copy/appNotification';
-import { getDatasourceSrv } from 'app/features/plugins/datasource_srv';
 import { store } from 'app/store/store';
 
 import { CloudWatchDatasource } from '../../datasource';
@@ -297,13 +296,11 @@ function useDatasource(props: Props) {
 
   useEffect(() => {
     if (props.options.version) {
-      getDatasourceSrv()
-        .loadDatasource(props.options.name)
-        .then((datasource) => {
-          if (datasource instanceof CloudWatchDatasource) {
-            setDatasource(datasource);
-          }
-        });
+      getDataSourceSrv().get(props.options.name).then((datasource) => {
+        if (datasource instanceof CloudWatchDatasource) {
+          setDatasource(datasource);
+        }
+      });
     }
   }, [props.options.version, props.options.name]);
 
