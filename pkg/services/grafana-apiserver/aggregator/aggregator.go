@@ -11,34 +11,19 @@ package aggregator
 import (
 	"crypto/tls"
 	"fmt"
-	"io"
-	"net"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/spf13/pflag"
-
-	servicev0alpha1 "github.com/grafana/grafana/pkg/apis/service/v0alpha1"
-	serviceclientset "github.com/grafana/grafana/pkg/generated/clientset/versioned"
-	informersv0alpha1 "github.com/grafana/grafana/pkg/generated/informers/externalversions"
-	"github.com/grafana/grafana/pkg/registry/apis/service"
-	grafanaAPIServer "github.com/grafana/grafana/pkg/services/grafana-apiserver"
-	filestorage "github.com/grafana/grafana/pkg/services/grafana-apiserver/storage/file"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
-	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
 	genericfeatures "k8s.io/apiserver/pkg/features"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/healthz"
-	"k8s.io/apiserver/pkg/server/options"
-	"k8s.io/apiserver/pkg/server/resourceconfig"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
@@ -53,176 +38,21 @@ import (
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
 	apiregistrationInformers "k8s.io/kube-aggregator/pkg/client/informers/externalversions/apiregistration/v1"
 	"k8s.io/kube-aggregator/pkg/controllers/autoregister"
-	aggregatoropenapi "k8s.io/kube-aggregator/pkg/generated/openapi"
-	"k8s.io/kube-openapi/pkg/common"
+
+	servicev0alpha1 "github.com/grafana/grafana/pkg/apis/service/v0alpha1"
+	serviceclientset "github.com/grafana/grafana/pkg/generated/clientset/versioned"
+	informersv0alpha1 "github.com/grafana/grafana/pkg/generated/informers/externalversions"
+	"github.com/grafana/grafana/pkg/services/grafana-apiserver/options"
+	filestorage "github.com/grafana/grafana/pkg/services/grafana-apiserver/storage/file"
 )
 
-type ExtraOptions struct {
-	ProxyClientCertFile string
-	ProxyClientKeyFile  string
-}
-
-// AggregatorServerOptions contains the state for the aggregator apiserver
-type AggregatorServerOptions struct {
-	Builders           []grafanaAPIServer.APIGroupBuilder
-	RecommendedOptions *options.RecommendedOptions
-	ExtraOptions       *ExtraOptions
-	AlternateDNS       []string
-
-	sharedInformerFactory informersv0alpha1.SharedInformerFactory
-
-	StdOut io.Writer
-	StdErr io.Writer
-}
-
-func NewAggregatorServerOptions(out, errOut io.Writer) *AggregatorServerOptions {
-	return &AggregatorServerOptions{
-		StdOut:       out,
-		StdErr:       errOut,
-		ExtraOptions: &ExtraOptions{},
-		Builders: []grafanaAPIServer.APIGroupBuilder{
-			service.NewServiceAPIBuilder(),
-		},
-	}
-}
-
-func (o *AggregatorServerOptions) LoadAPIGroupBuilders() error {
-	// Install schemas
-	for _, b := range o.Builders {
-		if err := b.InstallSchema(aggregatorscheme.Scheme); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (o *AggregatorServerOptions) Config(codecs serializer.CodecFactory) (*genericapiserver.RecommendedConfig, error) {
-	if err := o.RecommendedOptions.SecureServing.MaybeDefaultWithSelfSignedCerts(
-		"localhost", o.AlternateDNS, []net.IP{net.IPv4(127, 0, 0, 1)},
-	); err != nil {
-		return nil, fmt.Errorf("error creating self-signed certificates: %v", err)
-	}
-
-	o.RecommendedOptions.Authentication.RemoteKubeConfigFileOptional = true
-	o.RecommendedOptions.Authorization.RemoteKubeConfigFileOptional = true
-
-	o.RecommendedOptions.Admission = nil
-
-	if o.RecommendedOptions.CoreAPI.CoreAPIKubeconfigPath == "" {
-		o.RecommendedOptions.CoreAPI = nil
-	}
-
-	serverConfig := genericapiserver.NewRecommendedConfig(codecs)
-
-	if o.RecommendedOptions.CoreAPI == nil {
-		if err := o.ModifiedApplyTo(serverConfig); err != nil {
-			return nil, err
-		}
-	} else {
-		if err := o.RecommendedOptions.ApplyTo(serverConfig); err != nil {
-			return nil, err
-		}
-	}
-
-	return serverConfig, nil
-}
-
-// A copy of ApplyTo in recommended.go, but for >= 0.28, server pkg in apiserver does a bit extra causing
-// a panic when CoreAPI is set to nil
-func (o *AggregatorServerOptions) ModifiedApplyTo(config *genericapiserver.RecommendedConfig) error {
-	if err := o.RecommendedOptions.Etcd.ApplyTo(&config.Config); err != nil {
-		return err
-	}
-	if err := o.RecommendedOptions.EgressSelector.ApplyTo(&config.Config); err != nil {
-		return err
-	}
-	if err := o.RecommendedOptions.Traces.ApplyTo(config.Config.EgressSelector, &config.Config); err != nil {
-		return err
-	}
-	if err := o.RecommendedOptions.SecureServing.ApplyTo(&config.Config.SecureServing, &config.Config.LoopbackClientConfig); err != nil {
-		return err
-	}
-	if err := o.RecommendedOptions.Authentication.ApplyTo(&config.Config.Authentication, config.SecureServing, config.OpenAPIConfig); err != nil {
-		return err
-	}
-	if err := o.RecommendedOptions.Authorization.ApplyTo(&config.Config.Authorization); err != nil {
-		return err
-	}
-	if err := o.RecommendedOptions.Audit.ApplyTo(&config.Config); err != nil {
-		return err
-	}
-
-	// TODO: determine whether we need flow control (API priority and fairness)
-	//if err := o.RecommendedOptions.Features.ApplyTo(&config.Config); err != nil {
-	//	return err
-	//}
-
-	if err := o.RecommendedOptions.CoreAPI.ApplyTo(config); err != nil {
-		return err
-	}
-
-	_, err := o.RecommendedOptions.ExtraAdmissionInitializers(config)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (o *AggregatorServerOptions) getMergedOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
-	// Add OpenAPI specs for each group+version
-	prerequisiteAPIs := grafanaAPIServer.GetOpenAPIDefinitions(o.Builders)(ref)
-	aggregatorAPIs := aggregatoropenapi.GetOpenAPIDefinitions(ref)
-
-	for k, v := range prerequisiteAPIs {
-		aggregatorAPIs[k] = v
-	}
-
-	return aggregatorAPIs
-}
-
-func (o *AggregatorServerOptions) AddFlags(fs *pflag.FlagSet) {
-	if o == nil {
-		return
-	}
-
-	o.RecommendedOptions.AddFlags(fs)
-
-	fs.StringVar(&o.ExtraOptions.ProxyClientCertFile, "proxy-client-cert-file", o.ExtraOptions.ProxyClientCertFile,
-		"path to proxy client cert file")
-
-	fs.StringVar(&o.ExtraOptions.ProxyClientKeyFile, "proxy-client-key-file", o.ExtraOptions.ProxyClientKeyFile,
-		"path to proxy client cert file")
-}
-
-func (o *AggregatorServerOptions) CreateAggregatorConfig() (*aggregatorapiserver.Config, error) {
-	sharedConfig, err := o.Config(aggregatorscheme.Codecs)
-	if err != nil {
-		klog.Errorf("Error translating server options to config: %s", err)
-		return nil, err
-	}
-
-	commandOptions := *o.RecommendedOptions
-
+func CreateAggregatorConfig(commandOptions options.Options, sharedConfig genericapiserver.RecommendedConfig) (*aggregatorapiserver.Config, informersv0alpha1.SharedInformerFactory, error) {
 	// make a shallow copy to let us twiddle a few things
 	// most of the config actually remains the same.  We only need to mess with a couple items related to the particulars of the aggregator
 	genericConfig := sharedConfig.Config
 
 	genericConfig.PostStartHooks = map[string]genericapiserver.PostStartHookConfigEntry{}
 	genericConfig.RESTOptionsGetter = nil
-	// prevent generic API server from installing the OpenAPI handler. Aggregator server
-	// has its own customized OpenAPI handler.
-	genericConfig.SkipOpenAPIInstallation = true
-	mergedResourceConfig, err := resourceconfig.MergeAPIResourceConfigs(aggregatorapiserver.DefaultAPIResourceConfigSource(), nil, aggregatorscheme.Scheme)
-	if err != nil {
-		return nil, err
-	}
-	genericConfig.MergedResourceConfig = mergedResourceConfig
-
-	namer := openapinamer.NewDefinitionNamer(aggregatorscheme.Scheme)
-	genericConfig.OpenAPIV3Config = genericapiserver.DefaultOpenAPIV3Config(o.getMergedOpenAPIDefinitions, namer)
-	genericConfig.OpenAPIV3Config.Info.Title = "Kubernetes"
-	genericConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(o.getMergedOpenAPIDefinitions, namer)
-	genericConfig.OpenAPIConfig.Info.Title = "Kubernetes"
 
 	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.StorageVersionAPI) &&
 		utilfeature.DefaultFeatureGate.Enabled(genericfeatures.APIServerIdentity) {
@@ -235,7 +65,7 @@ func (o *AggregatorServerOptions) CreateAggregatorConfig() (*aggregatorapiserver
 	// copy the etcd options so we don't mutate originals.
 	// we assume that the etcd options have been completed already.  avoid messing with anything outside
 	// of changes to StorageConfig as that may lead to unexpected behavior when the options are applied.
-	etcdOptions := *commandOptions.Etcd
+	etcdOptions := *commandOptions.RecommendedOptions.Etcd
 	etcdOptions.StorageConfig.Codec = aggregatorscheme.Codecs.LegacyCodec(v1.SchemeGroupVersion,
 		v1beta1.SchemeGroupVersion,
 		servicev0alpha1.SchemeGroupVersion)
@@ -245,7 +75,7 @@ func (o *AggregatorServerOptions) CreateAggregatorConfig() (*aggregatorapiserver
 	// etcdOptions.StorageConfig.Transport.ServerList = []string{"127.0.0.1:2379"}
 	etcdOptions.SkipHealthEndpoints = true // avoid double wiring of health checks
 	if err := etcdOptions.ApplyTo(&genericConfig); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	genericConfig.RESTOptionsGetter = filestorage.NewRESTOptionsGetter("/tmp/grafana.aggregator", etcdOptions.StorageConfig)
 
@@ -253,13 +83,13 @@ func (o *AggregatorServerOptions) CreateAggregatorConfig() (*aggregatorapiserver
 
 	serviceClient, err := serviceclientset.NewForConfig(genericConfig.LoopbackClientConfig)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	o.sharedInformerFactory = informersv0alpha1.NewSharedInformerFactory(
+	sharedInformerFactory := informersv0alpha1.NewSharedInformerFactory(
 		serviceClient,
 		5*time.Minute, // this is effectively used as a refresh interval right now.  Might want to do something nicer later on.
 	)
-	serviceResolver := NewExternalNameResolver(o.sharedInformerFactory.Service().V0alpha1().ExternalNames().Lister())
+	serviceResolver := NewExternalNameResolver(sharedInformerFactory.Service().V0alpha1().ExternalNames().Lister())
 
 	genericConfig.DisabledPostStartHooks = genericConfig.DisabledPostStartHooks.Insert("apiservice-status-available-controller")
 	genericConfig.DisabledPostStartHooks = genericConfig.DisabledPostStartHooks.Insert("start-kube-aggregator-informers")
@@ -271,23 +101,25 @@ func (o *AggregatorServerOptions) CreateAggregatorConfig() (*aggregatorapiserver
 			ClientConfig:          genericConfig.LoopbackClientConfig,
 		},
 		ExtraConfig: aggregatorapiserver.ExtraConfig{
-			ProxyClientCertFile: o.ExtraOptions.ProxyClientCertFile,
-			ProxyClientKeyFile:  o.ExtraOptions.ProxyClientKeyFile,
+			ProxyClientCertFile: commandOptions.AggregatorOptions.ProxyClientCertFile,
+			ProxyClientKeyFile:  commandOptions.AggregatorOptions.ProxyClientKeyFile,
 			// NOTE: while ProxyTransport can be skipped in the configuration, it allows honoring
 			// DISABLE_HTTP2, HTTPS_PROXY and NO_PROXY env vars as needed
-			ProxyTransport: createProxyTransport(),
+			ProxyTransport:  createProxyTransport(),
+			ServiceResolver: serviceResolver,
 		},
 	}
 
-	aggregatorConfig.ExtraConfig.ServiceResolver = serviceResolver
+	if err := commandOptions.AggregatorOptions.ApplyTo(aggregatorConfig); err == nil {
+		return nil, nil, err
+	}
 
-	// we need to clear the poststarthooks so we don't add them multiple times to all the servers (that fails)
 	aggregatorConfig.GenericConfig.PostStartHooks = map[string]genericapiserver.PostStartHookConfigEntry{}
 
-	return aggregatorConfig, nil
+	return aggregatorConfig, sharedInformerFactory, nil
 }
 
-func (o *AggregatorServerOptions) CreateAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delegateAPIServer genericapiserver.DelegationTarget) (*aggregatorapiserver.APIAggregator, error) {
+func CreateAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, sharedInformerFactory informersv0alpha1.SharedInformerFactory, delegateAPIServer genericapiserver.DelegationTarget) (*aggregatorapiserver.APIAggregator, error) {
 	completedConfig := aggregatorConfig.Complete()
 	aggregatorServer, err := completedConfig.NewWithDelegate(delegateAPIServer)
 	if err != nil {
