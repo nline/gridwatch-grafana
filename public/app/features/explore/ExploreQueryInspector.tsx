@@ -79,7 +79,11 @@ export function ExploreQueryInspector(props: Props) {
     value: 'query',
     icon: 'info-circle',
     content: (
-      <QueryInspector data={queryResponse} onRefreshQuery={() => props.runQueries({ exploreId: props.exploreId })} />
+      <QueryInspector
+        data={queryResponse}
+        onRefreshQuery={() => props.runQueries({ exploreId: props.exploreId })}
+        validateRequestId={true}
+      />
     ),
   };
 

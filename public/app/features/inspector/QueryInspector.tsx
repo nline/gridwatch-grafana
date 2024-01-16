@@ -22,6 +22,7 @@ interface ExecutedQueryInfo {
 interface Props {
   data: PanelData;
   onRefreshQuery: () => void;
+  validateRequestId?: boolean;
 }
 
 interface State {
@@ -48,12 +49,12 @@ export class QueryInspector extends PureComponent<Props, State> {
   }
 
   componentDidMount() {
-    const { data } = this.props;
+    const { data, validateRequestId } = this.props;
     this.subs.add(
       backendSrv.getInspectorStream().subscribe({
         next: (response) => {
           let update = true;
-          if (data.request?.requestId && response?.config?.url) {
+          if (validateRequestId && data.request?.requestId && response?.config?.url) {
             const urlParams = parseKeyValue(response.config.url);
             if (urlParams.requestId) {
               update = urlParams.requestId.startsWith(data.request.requestId);
