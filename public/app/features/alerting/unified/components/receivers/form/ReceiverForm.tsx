@@ -16,6 +16,7 @@ import { useControlledFieldArray } from '../../../hooks/useControlledFieldArray'
 import { ChannelValues, CommonSettingsComponentType, ReceiverFormValues } from '../../../types/receiver-form';
 import { makeAMLink } from '../../../utils/misc';
 import { initialAsyncRequestState } from '../../../utils/redux';
+import { AlertingTabMessageTypes, useSendTabCommunicationChannel } from '../../../utils/tabCommunication';
 
 import { ChannelSubForm } from './ChannelSubForm';
 import { DeletedSubForm } from './fields/DeletedSubform';
@@ -91,12 +92,16 @@ export function ReceiverForm<R extends ChannelValues>({
     [takenReceiverNames]
   );
 
+  const { postMessage } = useSendTabCommunicationChannel();
+
   const submitCallback = async (values: ReceiverFormValues<R>) => {
     try {
       await onSubmit({
         ...values,
         items: values.items.filter((item) => !item.__deleted),
       });
+      // Notify other tabs subscribed to alerting broadcast channel that alert manager has been updated
+      postMessage(AlertingTabMessageTypes.AlertManagerUpdated);
     } catch (e) {
       if (e instanceof Error || isFetchError(e)) {
         notifyApp.error('Failed to save the contact point', getErrorMessage(e));

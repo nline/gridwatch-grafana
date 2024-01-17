@@ -1,5 +1,5 @@
 import { css } from '@emotion/css';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 
 import { GrafanaTheme2, SelectableValue } from '@grafana/data';
@@ -16,7 +16,7 @@ export interface ContactPointSelectorProps {
 }
 export function ContactPointSelector({ alertManager, contactPoints, onSelectContactPoint }: ContactPointSelectorProps) {
   const styles = useStyles2(getStyles);
-  const { control, watch } = useFormContext<RuleFormValues>();
+  const { control, getValues, watch, setValue } = useFormContext<RuleFormValues>();
 
   const options = contactPoints.map((receiver) => {
     const integrations = receiver?.grafana_managed_receiver_configs;
@@ -31,6 +31,16 @@ export function ContactPointSelector({ alertManager, contactPoints, onSelectCont
   const selectedContactPointSelectableValue = selectedContactPointWithMetadata
     ? { value: selectedContactPointWithMetadata, label: selectedContactPointWithMetadata.name }
     : undefined;
+
+  const valueFromForm = getValues(`contactPoints.${alertManager}.selectedContactPoint`);
+  useEffect(() => {
+    // when options change, we need to update the selected value
+    // if selected value is not in the options, we need to clear it
+    if (Boolean(valueFromForm) && !options.find((option) => option.value.name === valueFromForm)) {
+      onSelectContactPoint();
+      setValue(`contactPoints.${alertManager}.selectedContactPoint`, '');
+    }
+  }, [options, onSelectContactPoint, selectedContactPointWithMetadata, setValue, alertManager, valueFromForm]);
 
   return (
     <Stack direction="column">

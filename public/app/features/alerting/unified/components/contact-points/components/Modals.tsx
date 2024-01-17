@@ -2,6 +2,8 @@ import React, { useCallback, useMemo, useState } from 'react';
 
 import { Button, Modal, ModalProps } from '@grafana/ui';
 
+import { AlertingTabMessageTypes, useSendTabCommunicationChannel } from '../../../utils/tabCommunication';
+
 type ModalHook<T = undefined> = [JSX.Element, (item: T) => void, () => void];
 
 /**
@@ -14,6 +16,8 @@ export const useDeleteContactPointModal = (
   const [showModal, setShowModal] = useState(false);
   const [contactPoint, setContactPoint] = useState<string>();
   const [error, setError] = useState<unknown | undefined>();
+
+  const { postMessage } = useSendTabCommunicationChannel();
 
   const handleDismiss = useCallback(() => {
     if (isLoading) {
@@ -34,10 +38,14 @@ export const useDeleteContactPointModal = (
   const handleSubmit = useCallback(() => {
     if (contactPoint) {
       handleDelete(contactPoint)
-        .then(() => setShowModal(false))
+        .then(() => {
+          setShowModal(false);
+          // Notify other tabs subscribed to alerting broadcast channel that alert manager has been updated
+          postMessage(AlertingTabMessageTypes.AlertManagerUpdated);
+        })
         .catch(setError);
     }
-  }, [handleDelete, contactPoint]);
+  }, [handleDelete, contactPoint, postMessage]);
 
   const modalElement = useMemo(() => {
     if (error) {
