@@ -1,8 +1,18 @@
-import { css } from '@emotion/css';
+import { css, cx } from '@emotion/css';
 import React, { useState } from 'react';
 
 import { GrafanaTheme2 } from '@grafana/data';
-import { Alert, CollapsableSection, Icon, Link, LoadingPlaceholder, Stack, Text, useStyles2 } from '@grafana/ui';
+import {
+  Alert,
+  CollapsableSection,
+  Icon,
+  IconButton,
+  Link,
+  LoadingPlaceholder,
+  Stack,
+  Text,
+  useStyles2,
+} from '@grafana/ui';
 import { AlertManagerDataSource } from 'app/features/alerting/unified/utils/datasource';
 import { createUrl } from 'app/features/alerting/unified/utils/url';
 
@@ -22,10 +32,12 @@ export function AlertManagerManualRouting({ alertManager }: AlertManagerManualRo
   const styles = useStyles2(getStyles);
 
   const alertManagerName = alertManager.name;
-  const { isLoading, error: errorInContactPointStatus, contactPoints } = useContactPointsWithStatus();
+  const { isLoading, error: errorInContactPointStatus, contactPoints, refetchReceivers } = useContactPointsWithStatus();
   const [selectedContactPointWithMetadata, setSelectedContactPointWithMetadata] = useState<
     ContactPointWithMetadata | undefined
   >();
+
+  const [loadingContactPoints, setLoadingContactPoints] = useState(false);
 
   if (errorInContactPointStatus) {
     return <Alert title="Failed to fetch contact points" severity="error" />;
@@ -33,6 +45,14 @@ export function AlertManagerManualRouting({ alertManager }: AlertManagerManualRo
   if (isLoading) {
     return <LoadingPlaceholder text={'Loading...'} />;
   }
+  const onClickRefresh = () => {
+    refetchReceivers();
+    // show loading spinner for 1 second
+    setLoadingContactPoints(true);
+    setTimeout(() => {
+      setLoadingContactPoints(false);
+    }, 1000);
+  };
   return (
     <Stack direction="column">
       <Stack direction="row" alignItems="center">
@@ -50,7 +70,18 @@ export function AlertManagerManualRouting({ alertManager }: AlertManagerManualRo
           contactPoints={contactPoints}
           onSelectContactPoint={setSelectedContactPointWithMetadata}
         />
-        <LinkToContactPoints />
+        <div className={styles.contactPointsInfo}>
+          <IconButton
+            name="sync"
+            onClick={onClickRefresh}
+            aria-label="Refresh contact points"
+            tooltip="Refresh contact points list"
+            className={cx(styles.refreshButton, {
+              [styles.loading]: loadingContactPoints,
+            })}
+          />
+          <LinkToContactPoints />
+        </div>
       </Stack>
       {selectedContactPointWithMetadata?.grafana_managed_receiver_configs && (
         <ContactPointDetails receivers={selectedContactPointWithMetadata.grafana_managed_receiver_configs} />
@@ -116,5 +147,30 @@ const getStyles = (theme: GrafanaTheme2) => ({
     borderRadius: theme.shape.radius.default,
     padding: `${theme.spacing(1)} ${theme.spacing(2)}`,
     marginTop: theme.spacing(2),
+  }),
+  contactPointsInfo: css({
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: theme.spacing(1),
+  }),
+  refreshButton: css({
+    color: theme.colors.text.secondary,
+    cursor: 'pointer',
+    borderRadius: theme.shape.radius.circle,
+    overflow: 'hidden',
+  }),
+  loading: css({
+    'pointer-events': 'none',
+    animation: 'rotation 2s infinite linear',
+    '@keyframes rotation': {
+      from: {
+        transform: 'rotate(720deg)',
+      },
+      to: {
+        transform: 'rotate(0deg)',
+      },
+    },
   }),
 });
