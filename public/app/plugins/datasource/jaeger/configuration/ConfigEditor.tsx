@@ -4,11 +4,11 @@ import React from 'react';
 import { DataSourcePluginOptionsEditorProps, GrafanaTheme2 } from '@grafana/data';
 import { ConfigSection, DataSourceDescription } from '@grafana/experimental';
 import { config } from '@grafana/runtime';
+import { TraceToLogsSection, TraceToMetricsSection } from '@grafana/traces';
 import { DataSourceHttpSettings, useStyles2, Divider, Stack } from '@grafana/ui';
-import { NodeGraphSection } from 'app/core/components/NodeGraphSettings';
-import { TraceToLogsSection } from 'app/core/components/TraceToLogs/TraceToLogsSettings';
-import { TraceToMetricsSection } from 'app/core/components/TraceToMetrics/TraceToMetricsSettings';
-import { SpanBarSection } from 'app/features/explore/TraceView/components/settings/SpanBarSettings';
+
+import { NodeGraphSection } from '../_importedDependencies/components/NodeGraphSettings';
+import { SpanBarSection } from '../_importedDependencies/components/TraceView/SpanBarSettings';
 
 import { TraceIdTimeParams } from './TraceIdTimeParams';
 
