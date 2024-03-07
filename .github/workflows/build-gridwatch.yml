@@ -3,9 +3,9 @@ name: Publish Image
 on:
   workflow_dispatch:
   push:
-    branches: ["main"]
+    branches: ["gridwatch"]
     tags:
-      - "v*.*.*-nline"
+      - "v*.*.*-gridwatch"
 
 env:
   REPO: gcr.io/powerwatch-backend/nline-grafana-image
@@ -21,7 +21,7 @@ jobs:
         id: extract_version
         run: |
           TAG=${GITHUB_REF#refs/tags/v}
-          VERSION="${TAG%-nline}"
+          VERSION="${TAG%-gridwatch}"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Cache Docker layers
