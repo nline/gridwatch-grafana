@@ -51,9 +51,16 @@ export class DashboardPanelUnconnected extends PureComponent<Props> {
     lazy: true,
   };
 
+  isLazyLoadDisabled = () => {
+    return (
+      new URLSearchParams(window.location.search).get('lazy') === 'false' ||
+      (this.props.dashboard.templating.list || []).some((o) => o.name === 'lazy' && o.query === 'false')
+    );
+  };
+
   componentDidMount() {
     this.props.panel.isInView = !this.props.lazy;
-    if (!this.props.lazy) {
+    if (!(this.props.lazy && !this.isLazyLoadDisabled())) {
       this.onPanelLoad();
     }
   }
@@ -127,15 +134,7 @@ export class DashboardPanelUnconnected extends PureComponent<Props> {
   render() {
     const { width, height, lazy } = this.props;
 
-    const isLazyLoadDisabled = () => {
-      const hasLazyUrl = new URLSearchParams(location.search).get('lazy');
-      const hasLazyQueryParam = (this.props.dashboard.templating.list || []).some(
-        (o) => o.name === 'lazy' && o.query === 'false'
-      );
-      return hasLazyUrl === 'false' || hasLazyQueryParam;
-    };
-
-    return lazy && !isLazyLoadDisabled() ? (
+    return lazy && !this.isLazyLoadDisabled() ? (
       <LazyLoader width={width} height={height} onChange={this.onVisibilityChange} onLoad={this.onPanelLoad}>
         {this.renderPanel}
       </LazyLoader>

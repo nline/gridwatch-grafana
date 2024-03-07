@@ -27,7 +27,7 @@ export function PluginDetailsHeaderDependencies({ plugin, grafanaDependency }: P
       {Boolean(grafanaDependency) && (
         <div className={styles.depBadge}>
           <Icon name="grafana" className={styles.icon} />
-          Grafana {grafanaDependency}
+          GridWatch {grafanaDependency}
         </div>
       )}
 
