@@ -1,0 +1,49 @@
+name: Publish Image
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    tags:
+      - "v*.*.*-nline"
+
+env:
+  REPO: gcr.io/powerwatch-backend/nline-grafana-image
+
+jobs:
+  build-and-push-to-gcr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Extract version from tag
+        id: extract_version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/v}
+          VERSION="${TAG%-nline}"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Cache Docker layers
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.docker
+          key: ${{ runner.os }}-docker-${{ hashFiles('**/Dockerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
+
+      - id: "auth"
+        name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v2"
+        with:
+          credentials_json: "${{ secrets.GCLOUD_JSON }}"
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t $REPO:${{ env.VERSION }} .
+          docker build -t $REPO:latest .
+          docker push $REPO:${{ env.VERSION }}
+          docker push $REPO:latest
+        env:
+          REPO: $REPO

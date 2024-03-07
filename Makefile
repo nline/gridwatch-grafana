@@ -245,7 +245,7 @@ build-docker-full: ## Build Docker image for development.
 	--tag grafana/grafana$(TAG_SUFFIX):dev \
 	$(DOCKER_BUILD_ARGS)
 
-build-docker-arm: ## Build Docker image for development.
+build-docker-arm: ## Build ARM Docker image for development.
 	@echo "build docker container"
 	tar -ch . | \
 	docker buildx build - \
