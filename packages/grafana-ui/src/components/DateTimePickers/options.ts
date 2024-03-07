@@ -17,6 +17,7 @@ export const quickOptions: TimeOption[] = [
   { from: 'now-1y', to: 'now', display: 'Last 1 year' },
   { from: 'now-2y', to: 'now', display: 'Last 2 years' },
   { from: 'now-5y', to: 'now', display: 'Last 5 years' },
+  { from: 'now-10y', to: 'now', display: 'Last 10 years' },
   { from: 'now-1d/d', to: 'now-1d/d', display: 'Yesterday' },
   { from: 'now-2d/d', to: 'now-2d/d', display: 'Day before yesterday' },
   { from: 'now-7d/d', to: 'now-7d/d', display: 'This day last week' },
