@@ -35,7 +35,6 @@ jobs:
       - name: Build and push Docker image
         run: |
           NAME=$REPO:${{ env.VERSION }}-${{github.ref_name}}
-          docker build -t $REPO:${{ env.VERSION }} .
           docker build -t $NAME -f Dockerfile .
           gcloud auth configure-docker
           gcloud --quiet config set project powerwatch-backend
