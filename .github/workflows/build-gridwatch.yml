@@ -44,5 +44,3 @@ jobs:
           docker build -t $REPO:latest .
           docker push $REPO:${{ env.VERSION }}
           docker push $REPO:latest
-        env:
-          REPO: $REPO
