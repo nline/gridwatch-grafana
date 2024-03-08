@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - "v*.*.*-gridwatch"
+      - v*.*.*-gridwatch
 
 env:
   REPO: gcr.io/powerwatch-backend/nline-grafana-image
@@ -32,9 +32,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-docker-
 
-      - id: "auth"
-        name: "Authenticate to Google Cloud"
-        uses: "google-github-actions/auth@v2"
+      - id: auth
+        name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCLOUD_JSON }}
 
