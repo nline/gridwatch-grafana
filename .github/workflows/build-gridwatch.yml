@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - v*.*.*-gridwatch
+      - v*.*.*-gridwatch-*
 
 env:
   REPO: gcr.io/powerwatch-backend/nline-grafana-image
