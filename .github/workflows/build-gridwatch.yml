@@ -34,6 +34,6 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ env.REPO }}:${GITHUB_REF#refs/tags/v}-${{ github.ref_name }}
+          tags: ${{ env.REPO }}:${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
