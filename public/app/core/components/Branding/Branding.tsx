@@ -61,7 +61,7 @@ export class Branding {
   static LoginBoxBackground = LoginBoxBackground;
   static AppTitle = 'GridWatch';
   static LoginTitle = 'Welcome to GridWatch';
-  static HideEdition = false;
+  static HideEdition = true;
   static GetLoginSubTitle = (): null | string => {
     return null;
   };
