@@ -24,17 +24,22 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCLOUD_JSON }}
 
-      # NOW
-
       - name: Configure Docker for GCR
         run: |
           gcloud --quiet auth configure-docker
           gcloud --quiet config set project powerwatch-backend
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        run: |
+          NAME=$REPO:${{github.ref_name}}
+          docker build -t $NAME -f Dockerfile .
+          docker push $NAME
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
         with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ env.REPO }}:${{ github.ref_name }}
+          path: |
+            ~/.docker
+          key: ${{ runner.os }}-docker-${{ hashFiles('**`/Dockerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
