@@ -21,7 +21,7 @@ const useGetConfig = (cfg?: PublicDashboardCfg) => {
   const styles = useStyles2(getStyles);
 
   const { footerHide, footerText, footerLink, footerLogo, headerLogoHide } = cfg || {
-    footerHide: false,
+    footerHide: true,
     footerText: 'Powered by',
     footerLogo: GRAFANA_LOGO_DEFAULT_VALUE,
     footerLink: FOOTER_URL,

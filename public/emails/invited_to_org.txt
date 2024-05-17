@@ -9,4 +9,4 @@ Log in now:
 {{.AppUrl}}
 
 
-Sent by Grafana v{{.BuildVersion}} (c) {{now | date "2006"}} Grafana Labs
+Sent by GridWatch v{{.BuildVersion}} (c) {{now | date "2006"}} nLine Inc.

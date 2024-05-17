@@ -60,6 +60,7 @@ const rangeOptions: TimeOption[] = [
   { from: 'now-1y', to: 'now', display: 'Last 1 year' },
   { from: 'now-2y', to: 'now', display: 'Last 2 years' },
   { from: 'now-5y', to: 'now', display: 'Last 5 years' },
+  { from: 'now-10y', to: 'now', display: 'Last 10 years' },
   { from: 'now/fQ', to: 'now', display: 'This fiscal quarter so far' },
   { from: 'now/fQ', to: 'now/fQ', display: 'This fiscal quarter' },
   { from: 'now/fy', to: 'now', display: 'This fiscal year so far' },

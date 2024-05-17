@@ -1,3 +1,17 @@
 @import 'variables.generated';
 @import 'variables.dark.generated';
 @import 'grafana';
+@import 'nline';
+
+// Dark overrides
+img[alt~="Grafana"] {
+    filter: invert(100%) brightness(85%);
+}
+
+@media (min-width: 769px) {
+
+    .submenu-controls,
+    [aria-label="Dashboard submenu"]>div {
+        background: rgb(24, 27, 31) !important;
+    }
+}
