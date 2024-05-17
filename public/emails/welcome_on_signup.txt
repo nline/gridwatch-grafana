@@ -1,4 +1,4 @@
-{{HiddenSubject .Subject "Welcome to Grafana"}}
+{{HiddenSubject .Subject "Welcome to GridWatch"}}
 
 Hi {{.Name}},
 
@@ -8,7 +8,7 @@ If you are new to Grafana, refer to the Getting started with Grafana guide on ht
 
 Thank you for joining our community.
 
-The Grafana team
+nLine Inc.
 
 
-Sent by Grafana v{{.BuildVersion}} (c) {{now | date "2006"}} Grafana Labs
+Sent by GridWatch v{{.BuildVersion}} (c) {{now | date "2006"}} nLine Inc.
