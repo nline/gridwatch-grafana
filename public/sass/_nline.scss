@@ -1,33 +1,3 @@
-/* Assume light mode by default */
-@media (min-width: 769px) {
-  [aria-label="Dashboard submenu"] {
-    position: sticky !important;
-    z-index: 999 !important;
-    top: 4px !important;
-    margin: -4px 0 8px 0 !important;
-  }
-
-  [aria-label="Dashboard submenu"]>div {
-    background: white !important;
-    width: fit-content !important;
-    padding: 8px 4px 8px 8px !important;
-    border: rgba(0, 0, 0, 0.25) solid 1px !important;
-    border-radius: 4px !important;
-    box-shadow:
-      rgba(0, 0, 0, 0.08) 0px 0.6px 1.5px,
-      rgba(0, 0, 0, 0.06) 0px 2px 4px,
-      rgba(0, 0, 0, 0.05) 0px 5px 10px !important;
-
-    :has(> div[data-testid="data-testid Dashboard link container"]) {
-      padding: 8px !important;
-    }
-  }
-
-  [aria-label="Dashboard submenu"]>div>div.gf-form {
-    margin-bottom: 0px !important;
-  }
-}
-
 .mapboxgl-ctrl {
   display: none !important;
 }
