@@ -1,12 +1,3 @@
 .mapboxgl-ctrl {
   display: none !important;
 }
-
-/* Disables ugly hover on non-editable panels */
-.react-resizable-hide [data-testid*="hover-header-container"] {
-  display: none;
-}
-
-.react-draggable [data-testid*="hover-header-container"] {
-  display: flex;
-}
