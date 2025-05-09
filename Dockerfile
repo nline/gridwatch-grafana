@@ -62,6 +62,7 @@ COPY pkg/util/xorm/go.* pkg/util/xorm/
 COPY pkg/apiserver/go.* pkg/apiserver/
 COPY pkg/apimachinery/go.* pkg/apimachinery/
 COPY pkg/build/wire/go.* pkg/build/wire/
+COPY pkg/build/go.mod pkg/build/go.mod
 COPY pkg/promlib/go.* pkg/promlib/
 
 RUN go mod download
